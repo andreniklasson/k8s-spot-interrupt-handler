@@ -23,5 +23,5 @@ https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.
 Build the image using the Dockerfile present in the repo. Push the image to your ECR or other image registry. Modify the ImageUri value in _interrupt-handler.yaml_ to point towards your image. 
 
 ### Recommended resources
-https://ec2spotworkshops.com/
-https://github.com/mumoshu/kube-spot-termination-notice-handler Do not deregister the instance from any load balancer, but the project inspired me
+- https://ec2spotworkshops.com/
+- https://github.com/mumoshu/kube-spot-termination-notice-handler Does not deregister the instance from any load balancer, but the project inspired me
