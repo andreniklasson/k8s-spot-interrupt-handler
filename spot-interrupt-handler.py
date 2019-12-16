@@ -15,7 +15,7 @@ instanceId = requests.get(INSTANCE_ID_URL).text
 print("InstanceID: " + instanceId)
 
 document = requests.get(DOCUMENT_URL).text
-region = document['region']
+region = json.loads(document)['region']
 print("Region: " + region)
 
 resourceClient = boto3.client('resourcegroupstaggingapi', region_name=region)
