@@ -63,7 +63,7 @@ else:
     sys.exit(1)
 
 wait_for_termination_notice()
- print("InstanceID: " + instance_id + " has reveived spot termination notice")
+print("InstanceID: " + instance_id + " has reveived spot termination notice")
 
 drain_node(node_name) # Runs as a parallel process
 try:
