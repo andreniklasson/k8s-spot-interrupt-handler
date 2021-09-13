@@ -5,13 +5,13 @@ Given a spot termination notice, the spot-interrupt-handler detaches the instanc
 Label your nodes to avoid having the handler running on your On Demand instances. Label your Spot Instances with ```lifecycle=Ec2Spot``` and uncomment the nodeSelector block in the DaemonSet specified in _./interrupt-handler.yaml_.
 
 ### Permissions
-The interrupt-handler requires following IAM permissions to deregister the instance from the Target Group:
+The interrupt-handler requires following IAM permissions to list and detach instances:
 
-- elasticloadbalancing:DeregisterTargets
-- elasticloadbalancing:DescribeTags
-- elasticloadbalancing:DescribeTargetGroupAttributes
-- elasticloadbalancing:DescribeTargetGroups
-- tag:GetResources
+- 'autoscaling:DescribeAutoScalingGroups'
+- 'autoscaling:DescribeAutoScalingInstances'
+- 'autoscaling:SetDesiredCapacity'
+- 'autoscaling:TerminateInstanceInAutoScalingGroup'
+- 'autoscaling:DetachInstances'
 
 Recommended is to use resources like kube2iam, kiam, or IAM Roles for ServiceAccounts:
 https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html 
