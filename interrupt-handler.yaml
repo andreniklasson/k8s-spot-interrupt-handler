@@ -77,8 +77,8 @@ spec:
     metadata:
       labels:
         app: spot-interrupt-handler
-      # annotations:
-      #   iam.amazonaws.com/role: {{ .Rolename }}
+       annotations:
+         iam.amazonaws.com/role: k8s-${ClusterName}-spot-interrupt-handler-role
     spec:
       serviceAccountName: spot-interrupt-handler
       containers:

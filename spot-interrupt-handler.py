@@ -8,15 +8,20 @@ import sys
 
 INSTANCE_ID_URL="http://169.254.169.254/latest/meta-data/instance-id"
 TERMINATION_URL="http://169.254.169.254/latest/meta-data/spot/termination-time"
+DOCUMENT_URL="http://169.254.169.254/latest/dynamic/instance-identity/document"
 POLL_INTERVAL=5
 
-asg_client = boto3.client('autoscaling')
+document = requests.get(DOCUMENT_URL, timeout=10).text
+region = json.loads(document)['region']
+instance_id = requests.get(INSTANCE_ID_URL, timeout=10).text
+
+asg_client = boto3.client('autoscaling', region_name=region)
 
 def wait_for_termination_notice():
     print("Polling " + TERMINATION_URL + " every " + str(POLL_INTERVAL) + " second(s)")
     while requests.get(TERMINATION_URL).status_code != 200:
+        print("Polling..")
         time.sleep( POLL_INTERVAL )
-        print("No interruption notice")
     print("Interruption notice received!")
 
 def drain_node(node_name):
@@ -37,6 +42,7 @@ def fetch_autoscaling_group(instance_id):
         for instance in autoscaling_group["Instances"]:
             if instance_id in instance["InstanceId"]:
                 return autoscaling_group
+    raise Exception("Did not find any autoscaling group matched to the instance id")
 
 def detach_instance_from_asg(autoscaling_group, instance_id):
     asg_name = autoscaling_group["AutoScalingGroupName"]
@@ -50,10 +56,9 @@ def detach_instance_from_asg(autoscaling_group, instance_id):
     )
 
 try:
-    instance_id = requests.get(INSTANCE_ID_URL).text
     autoscaling_group = fetch_autoscaling_group(instance_id)
-except:
-    print("Unable to fetch autoscaling group, Exiting.....")
+except Exception as e:
+    print(e)
     sys.exit(1)
 
 if "NODE_NAME" in os.environ:
@@ -72,4 +77,3 @@ except Exception as e:
     print("Error trying to detach the instance from autoscaling group")
     print(e)
 time.sleep( 500 )
-
