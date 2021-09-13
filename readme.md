@@ -2,7 +2,7 @@
 Given a spot termination notice, the spot-interrupt-handler detaches the instance from its associated Autoscaling group and drains the node for graceful pod termination.
 
 ### Node Selection
-Label your nodes to avoid having the handler running on your On Demand instances. Label your Spot Instances with ```lifecycle=Ec2Spot``` and uncomment the nodeSelector block in the DaemonSet specified in _./interrupt-handler.yaml_.
+The DaemonSet utilizes nodeSelector to avoid having the handler running on your On Demand instances. Make sure your spot instances are labled with ```lifecycle=Ec2Spot```.
 
 ### Permissions
 The interrupt-handler requires following IAM permissions to list and detach instances:
