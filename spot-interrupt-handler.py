@@ -46,7 +46,6 @@ def fetch_autoscaling_group(instance_id):
 
 def detach_instance_from_asg(autoscaling_group, instance_id):
     asg_name = autoscaling_group["AutoScalingGroupName"]
-    current_capacity = autoscaling_group["DesiredCapacity"]
     asg_client.detach_instances(
         InstanceIds=[
             instance_id,
