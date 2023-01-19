@@ -19,8 +19,8 @@ instance_id = requests.get(INSTANCE_ID_URL, timeout=10).text
 asg_client = boto3.client('autoscaling', region_name=region)
 
 def wait_for_termination_notice():
-    print("Polling " + TERMINATION_URL + " and " + CAPACITY_REBALANCE_URL + "every " + str(POLL_INTERVAL) + " second(s)")
-    while requests.get(TERMINATION_URL).status_code != 200 and requests.get(CAPACITY_REBALANCE_URL).status_code != 200:
+    print("Polling " + TERMINATION_URL + " and " + CAPACITY_REBALANCE_URL + " every " + str(POLL_INTERVAL) + " second(s)")
+    while (requests.get(TERMINATION_URL).status_code != 200) and (requests.get(CAPACITY_REBALANCE_URL).status_code != 200):
         time.sleep( POLL_INTERVAL )
     print("Interruption notice received!")
 
@@ -72,6 +72,7 @@ print("InstanceID: " + instance_id + " has reveived spot termination notice")
 drain_node(node_name) # Runs as a parallel process
 try:
     detach_instance_from_asg(autoscaling_group, instance_id)
+    print("detach instance")
 except Exception as e:
     print("Error trying to detach the instance from autoscaling group")
     print(e)
