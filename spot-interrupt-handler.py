@@ -3,12 +3,12 @@ import os
 import subprocess
 import time
 import boto3
-import json
 import sys
 
 INSTANCE_ID_URL="http://169.254.169.254/latest/meta-data/instance-id"
 TERMINATION_URL="http://169.254.169.254/latest/meta-data/spot/termination-time"
 DOCUMENT_URL="http://169.254.169.254/latest/dynamic/instance-identity/document"
+CAPACITY_REBALANCE_URL="http://169.254.169.254/latest/meta-data/events/recommendations/rebalance"
 POLL_INTERVAL=5
 
 document = requests.get(DOCUMENT_URL, timeout=10).text
@@ -18,9 +18,8 @@ instance_id = requests.get(INSTANCE_ID_URL, timeout=10).text
 asg_client = boto3.client('autoscaling', region_name=region)
 
 def wait_for_termination_notice():
-    print("Polling " + TERMINATION_URL + " every " + str(POLL_INTERVAL) + " second(s)")
-    while requests.get(TERMINATION_URL).status_code != 200:
-        print("Polling..")
+    print("Polling " + TERMINATION_URL + " and " + CAPACITY_REBALANCE_URL + "every " + str(POLL_INTERVAL) + " second(s)")
+    while requests.get(TERMINATION_URL).status_code != 200 and requests.get(CAPACITY_REBALANCE_URL).status_code != 200:
         time.sleep( POLL_INTERVAL )
     print("Interruption notice received!")
 
