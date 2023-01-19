@@ -4,6 +4,7 @@ import subprocess
 import time
 import boto3
 import sys
+import json
 
 INSTANCE_ID_URL="http://169.254.169.254/latest/meta-data/instance-id"
 TERMINATION_URL="http://169.254.169.254/latest/meta-data/spot/termination-time"
