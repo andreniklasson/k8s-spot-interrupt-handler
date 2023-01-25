@@ -1,6 +1,6 @@
 FROM alpine:3.6
 
-ARG KUBE_VERSION=1.15.0
+ARG KUBE_VERSION=1.24.0
 ENV HOME=/srv
 WORKDIR /srv
 
@@ -27,5 +27,3 @@ RUN echo "**** install Python ****" && \
 
 RUN pip3 install boto3
 RUN pip3 install requests
-
-CMD [ "python3", "spot-interrupt-handler.py" ]

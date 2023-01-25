@@ -42,13 +42,14 @@ rules:
   - pods/eviction
   verbs:
   - create
-
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: spot-interrupt-handler
   namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: #ROLE ARN
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -78,21 +79,32 @@ spec:
     metadata:
       labels:
         app: spot-interrupt-handler
-      # annotations:
-        # iam.amazonaws.com/role: iam-role
     spec:
+      serviceAccountName: spot-interrupt-handler
       nodeSelector:
         lifecycle: Ec2Spot
       containers:
         - name: spot-interrupt-handler
-          image: # ImageUri
+          image: #IMAGE
+          command: ["python3", "spot-interrupt-handler.py"]
+          args:
+            - --rebalancing-recommendation-taint
+           # - --rebalancing-recommendation-cordon
+            - --elb-deregistration
           imagePullPolicy: Always
           env:
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-      serviceAccountName: spot-interrupt-handler
-        
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
   updateStrategy:
-    type: OnDelete
+    type: RollingUpdate
