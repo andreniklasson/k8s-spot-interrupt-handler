@@ -55,7 +55,7 @@ def taint_node(node_name):
     subprocess.Popen(taint_cmd, shell=True)
 
 def untaint_node(node_name):
-    taint_cmd="kubectl taint nodes " + node_name + " spot-interrupt-handler=owned:PreferNoSchedule"
+    taint_cmd="kubectl taint nodes " + node_name + " spot-interrupt-handler=owned:PreferNoSchedule-"
     logging.info("Untainting the node from PreferNoSchedule " + node_name)
     subprocess.Popen(taint_cmd, shell=True)
 
