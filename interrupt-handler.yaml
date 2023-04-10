@@ -80,6 +80,7 @@ spec:
       labels:
         app: spot-interrupt-handler
     spec:
+      hostNetwork: true
       serviceAccountName: spot-interrupt-handler
       nodeSelector:
         lifecycle: Ec2Spot

@@ -9,6 +9,7 @@ import logging
 from threading import Thread
 import argparse
 
+IMDS_TOKEN_URL="http://169.254.169.254/latest/api/token"
 INSTANCE_ID_URL="http://169.254.169.254/latest/meta-data/instance-id"
 TERMINATION_URL="http://169.254.169.254/latest/meta-data/spot/termination-time"
 DOCUMENT_URL="http://169.254.169.254/latest/dynamic/instance-identity/document"
@@ -18,21 +19,20 @@ POLL_INTERVAL=5
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
 
-document = requests.get(DOCUMENT_URL, timeout=10).text
-region = json.loads(document)['region']
-instance_id = requests.get(INSTANCE_ID_URL, timeout=10).text
-
-asg_client = boto3.client('autoscaling', region_name=region)
-elb_client = boto3.client('elbv2', region_name=region)
-
 node_cordoned = False
 prefer_no_schedule = False
 
+def imds_token():
+    headers = {'X-aws-ec2-metadata-token-ttl-seconds': '21600'}
+    return requests.put(IMDS_TOKEN_URL, headers=headers).content
+
 def termination_notice():
-    return requests.get(TERMINATION_URL).status_code == 200
+    headers = {'X-aws-ec2-metadata-token': imds_token()}
+    return requests.get(TERMINATION_URL, headers=headers).status_code == 200
 
 def rebalance_recommendation():
-    return requests.get(CAPACITY_REBALANCE_URL).status_code == 200
+    headers = {'X-aws-ec2-metadata-token': imds_token()}
+    return requests.get(CAPACITY_REBALANCE_URL, headers=headers).status_code == 200
 
 def drain_node(node_name):
     drain_cmd="kubectl drain " + node_name + " --force --ignore-daemonsets --delete-emptydir-data --grace-period=120"
@@ -79,7 +79,7 @@ def handle_rebalance_taint(node_name):
         untaint_node(node_name)
         prefer_no_schedule = False
 
-def fetch_autoscaling_group(instance_id):
+def fetch_autoscaling_group(asg_client,instance_id):
     response = asg_client.describe_auto_scaling_groups()
     asg_groups = response["AutoScalingGroups"]
     while "NextToken" in response:
@@ -94,7 +94,7 @@ def fetch_autoscaling_group(instance_id):
                 return autoscaling_group
     raise Exception("Did not find any autoscaling group matched to the instance id")
 
-def detach_instance_from_asg(autoscaling_group, instance_id):
+def detach_instance_from_asg(asg_client, autoscaling_group, instance_id):
     try:
         asg_name = autoscaling_group["AutoScalingGroupName"]
         asg_client.detach_instances(
@@ -107,7 +107,7 @@ def detach_instance_from_asg(autoscaling_group, instance_id):
     except Exception as e:
         logging.error("Error trying to detach the instance from autoscaling group", e)
 
-def deregister_from_elbs(instance_id):
+def deregister_from_elbs(elb_client,instance_id):
     try:
         response = elb_client.describe_target_groups(
             PageSize=400
@@ -136,6 +136,14 @@ def main():
     rebalance_taint = args.taint
     elb_deregister = args.elb
 
+    headers = {'X-aws-ec2-metadata-token': imds_token()}
+    document = requests.get(DOCUMENT_URL, timeout=10, headers=headers).text
+    instance_id = requests.get(INSTANCE_ID_URL, timeout=10, headers=headers).text
+    region = json.loads(document)['region']
+
+    asg_client = boto3.client('autoscaling', region_name=region)
+    elb_client = boto3.client('elbv2', region_name=region)
+
     logging.info("Starting interrupt handler.....")
     if "NODE_NAME" in os.environ:
         node_name = os.environ['NODE_NAME']
@@ -144,7 +152,7 @@ def main():
         sys.exit(1)
 
     try:
-        autoscaling_group = fetch_autoscaling_group(instance_id)
+        autoscaling_group = fetch_autoscaling_group(asg_client,instance_id)
     except Exception as e:
         logging.error("Unable to fetch autoscaling group", e)
         sys.exit(1)
@@ -162,11 +170,11 @@ def main():
     cordon_node(node_name)
 
     logging.info("Detaching: " + instance_id + " from autoscaling group")
-    Thread(target=detach_instance_from_asg, args=(autoscaling_group,instance_id,)).start()
+    Thread(target=detach_instance_from_asg, args=(asg_client,autoscaling_group,instance_id,)).start()
 
     if elb_deregister:
         logging.info("Deregistering from elb")
-        Thread(target=deregister_from_elbs, args=(instance_id,)).start()
+        Thread(target=deregister_from_elbs, args=(elb_client, instance_id,)).start()
 
     time.sleep( 30 )
 
